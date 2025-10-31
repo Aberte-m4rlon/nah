@@ -1,0 +1,74 @@
+<script src="https://cdn.tailwindcss.com"></script>
+
+<section class="p-8 bg-green-50 min-h-screen">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-3xl font-bold text-green-800">Admin Dashboard</h2>
+
+    <!-- ✅ Logout Button -->
+    <a href="/logout"
+       class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow transition">
+      Logout
+    </a>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-8">
+    <!-- Products Section -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+      <h3 class="text-xl font-semibold mb-4">Products</h3>
+
+      <form action="/admin/products" method="POST" enctype="multipart/form-data" class="space-y-3 mb-6">
+        <input type="text" name="name" placeholder="Product Name" class="border w-full px-4 py-2 rounded-lg">
+        <textarea name="description" placeholder="Description" class="border w-full px-4 py-2 rounded-lg"></textarea>
+        <input type="number" name="price" step="0.01" placeholder="Price" class="border w-full px-4 py-2 rounded-lg">
+        <input type="file" name="image" required class="border w-full px-4 py-2 rounded-lg">
+        <button class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg">Add Product</button>
+      </form>
+
+      <table class="w-full text-left">
+        <thead><tr><th>Name</th><th>Price</th><th></th></tr></thead>
+        <tbody>
+          {{#each products}}
+          <tr class="border-b">
+            <td>{{this.name}}</td>
+            <td>₱{{this.price}}</td>
+            <td>
+              <form action="/admin/products/delete/{{this.id}}" method="POST">
+                <button class="text-red-500 hover:underline">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Orders Section -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+      <h3 class="text-xl font-semibold mb-4">Orders</h3>
+      <table class="w-full text-left">
+        <thead><tr><th>User</th><th>Total</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {{#each orders}}
+          <tr class="border-b">
+            <td>{{this.User.name}}</td>
+            <td>₱{{this.total_price}}</td>
+            <td>{{this.status}}</td>
+            <td>
+              <form action="/admin/orders/update/{{this.id}}" method="POST" class="flex items-center space-x-2">
+                <select name="status" class="border rounded px-2 py-1">
+                  <option {{#if (eq this.status "Pending")}}selected{{/if}}>Pending</option>
+                  <option {{#if (eq this.status "Processing")}}selected{{/if}}>Processing</option>
+                  <option {{#if (eq this.status "Completed")}}selected{{/if}}>Completed</option>
+                </select>
+                <button class="text-green-600 hover:underline">Update</button>
+              </form>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+{{> footer}}

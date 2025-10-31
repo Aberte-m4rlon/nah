@@ -1,37 +1,15 @@
-// models/orderModel.js
 import { DataTypes } from "sequelize";
 import { sequelize } from "./db.js";
-import { User } from "./userModel.js";
-import { Product } from "./productModel.js";
+import User from "./userModel.js";
 
-export const Order = sequelize.define("Order", {
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true
-  },
-  total: {
-    type: DataTypes.FLOAT,
-    allowNull: false
-  },
-  status: {
-    type: DataTypes.STRING,
-    defaultValue: "Pending"
-  }
+const Order = sequelize.define("Order", {
+  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  items: { type: DataTypes.JSON, allowNull: false },
+  total: { type: DataTypes.FLOAT, allowNull: false },
+  status: { type: DataTypes.ENUM("pending", "paid", "shipped", "completed"), defaultValue: "pending" },
 });
 
-// Define relationships
-User.hasMany(Order, { foreignKey: "userId" });
-Order.belongsTo(User, { foreignKey: "userId" });
+User.hasMany(Order);
+Order.belongsTo(User);
 
-// Optional: many-to-many between Order and Product
-export const OrderItem = sequelize.define("OrderItem", {
-  quantity: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 1
-  }
-});
-
-Order.belongsToMany(Product, { through: OrderItem });
-Product.belongsToMany(Order, { through: OrderItem });
+export default Order;

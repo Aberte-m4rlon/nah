@@ -1,17 +1,18 @@
-<script src="https://cdn.tailwindcss.com"></script>
-
-<nav class="backdrop-blur-lg bg-white/20 shadow-md p-4 flex justify-between items-center">
-  <h1 class="text-2xl font-bold text-white drop-shadow-lg">🛒 XianCommerce</h1>
-  <div class="flex gap-4 text-white">
-    <a href="/">Home</a>
-    <a href="/products">Products</a>
+<header class="bg-green-700 text-white px-6 py-3 flex justify-between items-center shadow-lg">
+  <h1 class="text-xl font-bold">🛍 XianFire Shop</h1>
+  <nav class="space-x-6">
+    <a href="/" class="hover:underline">Home</a>
+    <a href="/cart" class="hover:underline">Cart</a>
     {{#if user}}
-      <a href="/cart">Cart</a>
-      <a href="/orders">My Orders</a>
-      <a href="/logout">Logout</a>
+      {{#if (eq user.role "admin")}}
+        <a href="/admin/dashboard" class="hover:underline">Dashboard</a>
+      {{else}}
+        <!-- ✅ Add new link for customers -->
+        <a href="/orders" class="hover:underline">My Orders</a>
+      {{/if}}
+      <a href="/logout" class="hover:underline">Logout ({{user.name}})</a>
     {{else}}
-      <a href="/login">Login</a>
-      <a href="/register">Register</a>
+      <a href="/login" class="hover:underline">Login</a>
     {{/if}}
-  </div>
-</nav>
+  </nav>
+</header>

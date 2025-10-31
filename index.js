@@ -32,6 +32,9 @@ import hbs from "hbs";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
+hbs.registerHelper("multiply", (a, b) => (a * b).toFixed(2));
+hbs.registerHelper("eq", (a, b) => a === b);
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 

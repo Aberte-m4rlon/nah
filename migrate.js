@@ -25,25 +25,18 @@
     */
     
 import { sequelize } from "./models/db.js";
-import { User } from "./models/userModel.js";
-import inquirer from "inquirer";
+import Product from "./models/Product.js";
+import User from "./models/userModel.js";
+import Order from "./models/orderModel.js";
 
-const { createDb } = await inquirer.prompt([
-  { type: "confirm", name: "createDb", message: "Database 'e-commerce' may not exist. Create it?", default: true }
-]);
+(async () => {
+  try {
+    await sequelize.sync({ alter: true }); // creates/updates tables
+    console.log("Database synced successfully!");
+    process.exit(0);
+  } catch (err) {
+    console.error("Migration error:", err);
+    process.exit(1);
+  }
+})();
 
-if (createDb) {
-  await sequelize.query("CREATE DATABASE IF NOT EXISTS e-commerce;");
-  console.log("✅ Database created (if it did not exist)");
-}
-
-try {
-  await sequelize.authenticate();
-  console.log("✅ Connected to MySQL database!");
-  await sequelize.sync({ force: true });
-  console.log("✅ Tables created for all models!");
-} catch (err) {
-  console.error("❌ Migration failed:", err);
-} finally {
-  process.exit();
-};

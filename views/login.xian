@@ -1,41 +1,21 @@
+<script src="https://cdn.tailwindcss.com"></script>
+{{> header}}
 
-<body class="bg-gradient-to-br from-blue-100 via-white to-blue-200 min-h-screen flex items-center justify-center">
-  <div class="backdrop-blur-xl bg-white/30 border border-white/40 shadow-2xl rounded-2xl p-8 w-96">
-      {{> header}}
-    <h2 class="text-2xl font-bold text-center mb-6 text-gray-800 drop-shadow-sm">Welcome Back</h2>
-    
-    <form method="POST" action="/login" class="flex flex-col space-y-4">
-      <input 
-        type="email" 
-        name="email" 
-        placeholder="Email" 
-        class="p-3 rounded-lg bg-white/40 border border-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-600 text-gray-800 shadow-sm backdrop-blur-sm"
-        required 
-      />
-      
-      <input 
-        type="password" 
-        name="password" 
-        placeholder="Password" 
-        class="p-3 rounded-lg bg-white/40 border border-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-600 text-gray-800 shadow-sm backdrop-blur-sm"
-        required 
-      />
-      
-      <button 
-        type="submit" 
-        class="bg-blue-500/80 hover:bg-blue-600/90 text-white font-semibold p-3 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg hover:scale-[1.02]"
-      >
-        Login
-      </button>
-      
-      <a 
-        href="/register" 
-        class="text-blue-700 text-center hover:underline mt-2 text-sm"
-      >
-        Don’t have an account? Register
-      </a>
+<section class="flex justify-center items-center h-screen bg-green-50">
+  <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
+    <h2 class="text-2xl font-bold mb-6 text-green-700 text-center">Login to XianFire Shop</h2>
+    <form action="/login" method="POST" class="space-y-4">
+      <input type="email" name="email" placeholder="Email" required
+        class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none">
+      <input type="password" name="password" placeholder="Password" required
+        class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none">
+      <button type="submit"
+        class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition">Login</button>
     </form>
-    {{> footer}}
+    <p class="mt-4 text-sm text-center">Don’t have an account? 
+      <a href="/register" class="text-green-700 hover:underline">Register here</a>
+    </p>
   </div>
-</body>
+</section>
 
+{{> footer}}

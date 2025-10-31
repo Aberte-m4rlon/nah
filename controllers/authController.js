@@ -1,5 +1,4 @@
-
-      /*
+/*
     MIT License
     
     Copyright (c) 2025 Christian I. Cabrera || XianFire Framework
@@ -22,8 +21,8 @@
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
-    */
-    
+*/
+
 import bcrypt from "bcrypt";
 import { User, sequelize } from "../models/userModel.js";
 await sequelize.sync();
@@ -31,27 +30,45 @@ await sequelize.sync();
 export const loginPage = (req, res) => res.render("login", { title: "Login" });
 export const registerPage = (req, res) => res.render("register", { title: "Register" });
 export const forgotPasswordPage = (req, res) => res.render("forgotpassword", { title: "Forgot Password" });
+
 export const dashboardPage = (req, res) => {
   if (!req.session.userId) return res.redirect("/login");
   res.render("dashboard", { title: "Dashboard" });
 };
 
+// ✅ Updated loginUser to redirect based on role
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ where: { email } });
   if (!user) return res.send("User not found");
+
   const match = await bcrypt.compare(password, user.password);
   if (!match) return res.send("Incorrect password");
+
   req.session.userId = user.id;
-  res.redirect("/dashboard");
+
+  // Redirect based on user role
+  if (user.role === "admin") {
+    res.redirect("/admin/dashboard");
+  } else {
+    res.redirect("/shop"); // customer area
+  }
 };
 
+// ✅ Updated registerUser to automatically set role as "customer"
 export const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
   const hashed = await bcrypt.hash(password, 10);
-  const user = await User.create({ name, email, password: hashed });
+
+  const user = await User.create({
+    name,
+    email,
+    password: hashed,
+    role: "customer", // 👈 auto-assign customer role
+  });
+
   req.session.userId = user.id;
-  res.redirect("/dashboard");
+  res.redirect("/shop");
 };
 
 export const logoutUser = (req, res) => {
