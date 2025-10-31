@@ -1,0 +1,4 @@
+<div class="text-center mt-10">
+  <h1 class="text-3xl font-bold text-green-600">✅ Order Placed Successfully!</h1>
+  <a href="/" class="text-blue-500 underline">Return to Home</a>
+</div>

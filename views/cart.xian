@@ -1,0 +1,13 @@
+<h2 class="text-3xl mb-4">🛒 Your Cart</h2>
+{{#if empty}}
+<p>Your cart is empty.</p>
+{{else}}
+<ul>
+  {{#each items}}
+  <li>{{this.name}} — ₱{{this.price}}</li>
+  {{/each}}
+</ul>
+<form action="/checkout" method="POST" class="mt-4">
+  <button class="bg-blue-500 text-white px-4 py-2 rounded-lg">Checkout</button>
+</form>
+{{/if}}

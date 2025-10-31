@@ -1,0 +1,11 @@
+{{> header }}
+<div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-500/40 to-purple-600/40 backdrop-blur-lg text-white p-10">
+  <h2 class="text-4xl font-semibold mb-6">Welcome to XianCommerce</h2>
+  {{#if user}}
+    <p class="text-lg mb-6">Hello, {{user.name}}!</p>
+    <a href="/products" class="bg-white/30 px-6 py-2 rounded-lg backdrop-blur-md hover:bg-white/50 transition">Start Shopping</a>
+  {{else}}
+    <a href="/login" class="bg-white/30 px-6 py-2 rounded-lg backdrop-blur-md hover:bg-white/50 transition">Login to Start</a>
+  {{/if}}
+</div>
+{{> footer }}
