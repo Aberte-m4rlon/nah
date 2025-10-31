@@ -59,6 +59,7 @@
     </div>
     {{/if}}
   </div>
+  {{> footer}}
+
 </section>
 
-{{> footer}}

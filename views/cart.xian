@@ -6,50 +6,130 @@
 
   {{#if cart.length}}
   <div class="bg-white rounded-2xl shadow-lg p-6 max-w-4xl mx-auto">
-    <table class="w-full text-left">
-      <thead>
-        <tr class="border-b">
-          <th class="pb-2">Product</th>
-          <th class="pb-2 text-center">Qty</th>
-          <th class="pb-2 text-right">Price</th>
-          <th class="pb-2 text-right">Subtotal</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{#each cart}}
-        <tr class="border-b">
-          <td>{{this.name}}</td>
-          <td class="text-center">
-            <form action="/cart/update/{{this.id}}" method="POST" class="inline-flex items-center justify-center gap-2">
-              <input type="number" name="qty" value="{{this.qty}}" min="1"
-                class="w-16 border rounded-lg px-2 py-1 text-center focus:ring-2 focus:ring-green-500 outline-none">
-              <button type="submit"
-                class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg text-sm">Update</button>
-            </form>
-          </td>
-          <td class="text-right">₱{{this.price}}</td>
-          <td class="text-right font-semibold">₱{{multiply this.price this.qty}}</td>
-        </tr>
-        {{/each}}
-      </tbody>
-    </table>
+    <form id="checkoutForm" action="/checkout" method="POST">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="border-b">
+            <th class="pb-2 text-center">Select</th>
+            <th class="pb-2">Product</th>
+            <th class="pb-2 text-center">Qty</th>
+            <th class="pb-2 text-right">Price</th>
+            <th class="pb-2 text-right">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each cart}}
+          <tr class="border-b">
+            <!-- ✅ Checkbox to include/exclude item -->
+            <td class="text-center">
+              <input type="checkbox" name="selectedItems" value="{{this.id}}" class="item-checkbox w-5 h-5 accent-green-600" checked>
+            </td>
+            <td>{{this.name}}</td>
+            <td class="text-center">
+              <form action="/cart/update/{{this.id}}" method="POST" class="inline-flex items-center justify-center gap-2">
+                <input type="number" name="qty" value="{{this.qty}}" min="1"
+                  class="w-16 border rounded-lg px-2 py-1 text-center focus:ring-2 focus:ring-green-500 outline-none">
+                <button type="submit"
+                  class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg text-sm">Update</button>
+              </form>
+            </td>
+            <td class="text-right">₱{{this.price}}</td>
+            <td class="text-right font-semibold subtotal" data-price="{{multiply this.price this.qty}}">
+              ₱{{multiply this.price this.qty}}
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
 
-    <div class="flex justify-between items-center mt-6">
-      <p class="text-xl font-bold text-green-700">Total: ₱{{total}}</p>
+      <div class="flex justify-between items-center mt-6">
+        <p class="text-xl font-bold text-green-700">
+          Total: ₱<span id="cartTotal">{{total}}</span>
+        </p>
 
-      {{#if user}}
-        <form action="/checkout" method="POST">
-          <button class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg">Checkout</button>
-        </form>
-      {{else}}
-        <a href="/login"
-          class="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2 rounded-lg transition">Login to Checkout</a>
-      {{/if}}
-    </div>
+        {{#if user}}
+          <button type="submit"
+            class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition">
+            Checkout Selected
+          </button>
+        {{else}}
+          <a href="/login"
+            class="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2 rounded-lg transition">Login to Checkout</a>
+        {{/if}}
+      </div>
+    </form>
   </div>
   {{else}}
   <p class="text-center text-gray-600">Your cart is empty.</p>
   {{/if}}
+
+  {{> footer}}
 </section>
 
-{{> footer}}
+<!-- ✅ Checkout Success Modal -->
+<div id="checkoutModal"
+     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 w-80 text-center animate-fadeIn">
+    <div class="flex justify-center mb-4">
+      <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-bounce">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+    </div>
+    <h2 class="text-xl font-semibold text-green-700">Checkout Successful!</h2>
+    <p class="text-gray-600 mt-2">Your order has been placed successfully.</p>
+  </div>
+</div>
+
+<!-- ✅ JS Logic -->
+<script>
+  const form = document.getElementById('checkoutForm');
+  const checkboxes = document.querySelectorAll('.item-checkbox');
+  const subtotals = document.querySelectorAll('.subtotal');
+  const totalDisplay = document.getElementById('cartTotal');
+
+  // 🧮 Update total dynamically when checkboxes change
+  checkboxes.forEach((checkbox, index) => {
+    checkbox.addEventListener('change', () => {
+      let total = 0;
+      checkboxes.forEach((cb, i) => {
+        if (cb.checked) total += parseFloat(subtotals[i].dataset.price);
+      });
+      totalDisplay.textContent = total.toFixed(2);
+    });
+  });
+
+  // 🟢 Modal on submit
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const selected = Array.from(checkboxes).filter(cb => cb.checked);
+      if (selected.length === 0) {
+        alert("Please select at least one product to checkout.");
+        return;
+      }
+
+      const modal = document.getElementById('checkoutModal');
+      modal.classList.remove('hidden');
+
+      // Simulate checkout delay
+      setTimeout(() => {
+        form.submit();
+      }, 1800);
+    });
+  }
+</script>
+
+<!-- ✅ Animation -->
+<style>
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+  }
+</style>

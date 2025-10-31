@@ -1,6 +1,6 @@
 /*
     MIT License
-    
+
     Copyright (c) 2025 Christian I. Cabrera || XianFire Framework
     Mindoro State University - Philippines
 */
@@ -9,7 +9,7 @@ import express from "express";
 import bcrypt from "bcrypt";
 import multer from "multer";
 import path from "path";
-import { Sequelize, DataTypes } from "sequelize";
+import { Sequelize, DataTypes, Op } from "sequelize";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
@@ -31,7 +31,7 @@ const User = sequelize.define("User", {
   name: DataTypes.STRING,
   email: { type: DataTypes.STRING, unique: true },
   password: DataTypes.STRING,
-  role: { type: DataTypes.STRING, defaultValue: "customer" }
+  role: { type: DataTypes.STRING, defaultValue: "customer" } // admin | seller | customer
 });
 
 const Product = sequelize.define("Product", {
@@ -55,8 +55,10 @@ User.hasMany(Order);
 Order.belongsTo(User);
 Order.belongsToMany(Product, { through: OrderItem });
 Product.belongsToMany(Order, { through: OrderItem });
+User.hasMany(Product);
+Product.belongsTo(User);
 
-// ✅ Sync DB (create tables if not exist)
+// ✅ Sync DB
 sequelize.sync({ alter: true });
 
 // ✅ File Upload Setup
@@ -66,7 +68,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ✅ Middleware to protect routes
+// ✅ Middleware
 function isAuthenticated(req, res, next) {
   if (req.session.user) return next();
   res.redirect("/login");
@@ -77,11 +79,16 @@ function isAdmin(req, res, next) {
   res.redirect("/");
 }
 
+function isSeller(req, res, next) {
+  if (req.session.user && req.session.user.role === "seller") return next();
+  res.redirect("/");
+}
+
 // ============================
 // 🔹 ROUTES START HERE
 // ============================
 
-// 🏠 Home Page — Product Listing
+// 🏠 Home Page
 router.get("/", async (req, res) => {
   const products = await Product.findAll();
   res.render("home", { products, user: req.session.user });
@@ -90,16 +97,17 @@ router.get("/", async (req, res) => {
 // 👤 Register Page
 router.get("/register", (req, res) => res.render("register"));
 
-// ✅ UPDATED: Register with selectable role (admin or customer)
+// ✅ Register with Role
 router.post("/register", async (req, res) => {
   const { name, email, password, role } = req.body;
   const hashed = await bcrypt.hash(password, 10);
+
   try {
     await User.create({
       name,
       email,
       password: hashed,
-      role: role || "customer" // ✅ Use chosen role or default to customer
+      role: role || "customer"
     });
     res.redirect("/login");
   } catch (err) {
@@ -110,16 +118,21 @@ router.post("/register", async (req, res) => {
 
 // 👥 Login Page
 router.get("/login", (req, res) => {
-  // If already logged in
   if (req.session.user) {
-    return req.session.user.role === "admin"
-      ? res.redirect("/admin/dashboard")
-      : res.redirect("/home");
+    // ✅ Auto redirect if already logged in
+    switch (req.session.user.role) {
+      case "admin":
+        return res.redirect("/admin/dashboard");
+      case "seller":
+        return res.redirect("/seller/dashboard");
+      default:
+        return res.redirect("/"); // Customer = main shop
+    }
   }
   res.render("login");
 });
 
-// ✅ FIXED ADMIN LOGIN LOGIC
+// ✅ Login Logic (fixed redirects)
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -130,20 +143,17 @@ router.post("/login", async (req, res) => {
     const validPass = await bcrypt.compare(password, user.password);
     if (!validPass) return res.send("Incorrect password.");
 
-    // ✅ Save session
+    // ✅ Store session
     req.session.user = {
       id: user.id,
       role: user.role,
       name: user.name
     };
 
-    // ✅ Role-based redirect
-    if (req.session.user) {
-      return req.session.user.role === "admin"
-        ? res.redirect("/admin/dashboard")
-        : res.redirect("/");
-    }
-
+    // ✅ Redirect by role
+    if (user.role === "admin") return res.redirect("/admin/dashboard");
+    if (user.role === "seller") return res.redirect("/seller/dashboard");
+    return res.redirect("/"); // Customer goes to shop home
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal server error.");
@@ -155,7 +165,7 @@ router.get("/logout", (req, res) => {
   req.session.destroy(() => res.redirect("/"));
 });
 
-// 🛒 Add to Cart (session)
+// 🛒 Add to Cart
 router.post("/cart/add/:id", async (req, res) => {
   const id = req.params.id;
   const product = await Product.findByPk(id);
@@ -175,18 +185,14 @@ router.post("/cart/add/:id", async (req, res) => {
   res.redirect("/cart");
 });
 
-// ✅ Update cart quantity (from frontend form)
+// ✅ Update cart quantity
 router.post("/cart/update/:id", async (req, res) => {
   const id = req.params.id;
   const qty = parseInt(req.body.qty);
-
   if (!req.session.cart) req.session.cart = [];
 
   const item = req.session.cart.find(p => p.id == id);
-  if (item) {
-    item.qty = qty > 0 ? qty : 1; // prevent 0 or negative
-  }
-
+  if (item) item.qty = qty > 0 ? qty : 1;
   res.redirect("/cart");
 });
 
@@ -204,7 +210,6 @@ router.post("/checkout", isAuthenticated, async (req, res) => {
 
   const total = cart.reduce((sum, p) => sum + p.price * p.qty, 0);
 
-  // ✅ FIXED: Save with UserId (foreign key)
   const order = await Order.create({
     UserId: req.session.user.id,
     total_price: total
@@ -221,55 +226,100 @@ router.post("/checkout", isAuthenticated, async (req, res) => {
   req.session.cart = [];
   res.render("checkout", { order, user: req.session.user });
 });
+// 🧑‍💼 SELLER DASHBOARD
+router.get("/seller/dashboard", isSeller, async (req, res) => {
+  const sellerId = req.session.user.id;
 
-// 👨‍💼 Admin Dashboard
-router.get("/admin", isAdmin, async (req, res) => {
-  const products = await Product.findAll();
-  const orders = await Order.findAll({ include: User });
-  res.render("admin/dashboard", { products, orders, user: req.session.user });
+  // ✅ Only show products owned by this seller
+  const products = await Product.findAll({
+    where: { UserId: sellerId }
+  });
+
+  // ✅ Only show orders that include this seller’s products
+  const orders = await Order.findAll({
+    include: [
+      { model: User }, // Include customer info
+      {
+        model: Product,
+        where: { UserId: sellerId }, // Filter only seller's products
+        through: { attributes: ["quantity"] }
+      }
+    ],
+    order: [["createdAt", "DESC"]]
+  });
+
+  res.render("seller/dashboard", { products, orders, user: req.session.user });
 });
 
-// ✅ Alias route for admin dashboard (so /admin/dashboard works)
-router.get("/admin/dashboard", isAdmin, async (req, res) => {
-  const products = await Product.findAll();
-  const orders = await Order.findAll({ include: User });
-  res.render("admin/dashboard", { products, orders, user: req.session.user });
+router.get("/", async (req, res) => {
+  const allProducts = await Product.findAll();
+  const featuredProducts = await Product.findAll({ limit: 5, order: [["createdAt", "DESC"]] }); // latest or featured
+  res.render("home", { products: allProducts, featuredProducts, user: req.session.user });
 });
 
-// 🧩 Add Product
-router.post("/admin/products", isAdmin, upload.single("image"), async (req, res) => {
+// 🧩 Add Product (Seller)
+router.post("/seller/products", isSeller, upload.single("image"), async (req, res) => {
   const { name, description, price } = req.body;
   const image = "/uploads/" + req.file.filename;
-  await Product.create({ name, description, price, image });
-  res.redirect("/admin");
+  await Product.create({
+    name,
+    description,
+    price,
+    image,
+    UserId: req.session.user.id
+  });
+  res.redirect("/seller/dashboard");
 });
 
 // 🗑 Delete Product
-router.post("/admin/products/delete/:id", isAdmin, async (req, res) => {
-  await Product.destroy({ where: { id: req.params.id } });
-  res.redirect("/admin");
+router.post("/seller/products/delete/:id", isSeller, async (req, res) => {
+  await Product.destroy({ where: { id: req.params.id, UserId: req.session.user.id } });
+  res.redirect("/seller/dashboard");
 });
 
 // ✅ Update Order Status
-router.post("/admin/orders/update/:id", isAdmin, async (req, res) => {
+router.post("/seller/orders/update/:id", isSeller, async (req, res) => {
   await Order.update({ status: req.body.status }, { where: { id: req.params.id } });
-  res.redirect("/admin");
+  res.redirect("/seller/dashboard");
 });
 
-// 📦 Customer Order Status Page
+// 👑 ADMIN DASHBOARD — manage users and counts
+router.get("/admin/dashboard", isAdmin, async (req, res) => {
+  const users = await User.findAll({
+    where: {
+      role: {
+        [Op.in]: ["seller", "customer"]
+      }
+    }
+  });
+
+  const sellerCount = users.filter(u => u.role === "seller").length;
+  const customerCount = users.filter(u => u.role === "customer").length;
+
+  res.render("admin/dashboard", {
+    users,
+    sellerCount,
+    customerCount,
+    user: req.session.user
+  });
+});
+
+// ✅ Admin Add Seller
+router.post("/admin/add-seller", isAdmin, async (req, res) => {
+  const { name, email, password } = req.body;
+  const hashed = await bcrypt.hash(password, 10);
+  await User.create({ name, email, password: hashed, role: "seller" });
+  res.redirect("/admin/dashboard");
+});
+
+// 📦 Customer Orders
 router.get("/orders", isAuthenticated, async (req, res) => {
   try {
     const orders = await Order.findAll({
-      where: { UserId: req.session.user.id }, // ✅ Only show orders for this user
-      include: [
-        {
-          model: Product,
-          through: { attributes: ["quantity"] } // show product qty per order
-        }
-      ],
+      where: { UserId: req.session.user.id },
+      include: [{ model: Product, through: { attributes: ["quantity"] } }],
       order: [["createdAt", "DESC"]]
     });
-
     res.render("orders", { orders, user: req.session.user });
   } catch (err) {
     console.error("Error loading orders:", err);

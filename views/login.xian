@@ -4,18 +4,134 @@
 <section class="flex justify-center items-center h-screen bg-green-50">
   <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
     <h2 class="text-2xl font-bold mb-6 text-green-700 text-center">Login to XianFire Shop</h2>
-    <form action="/login" method="POST" class="space-y-4">
+
+    <form id="loginForm" class="space-y-4">
       <input type="email" name="email" placeholder="Email" required
         class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none">
       <input type="password" name="password" placeholder="Password" required
         class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none">
       <button type="submit"
-        class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition">Login</button>
+        class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition">
+        Login
+      </button>
     </form>
-    <p class="mt-4 text-sm text-center">Don’t have an account? 
+
+    <p class="mt-4 text-sm text-center">
+      Don’t have an account?
       <a href="/register" class="text-green-700 hover:underline">Register here</a>
     </p>
   </div>
 </section>
 
+<!-- ✅ Modal Container -->
+<div id="loginModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-2xl p-8 w-80 text-center animate-fadeIn">
+    <!-- Loading Spinner -->
+    <div id="loadingCircle" class="flex justify-center mb-4">
+      <div class="w-16 h-16 border-4 border-green-300 border-t-green-600 rounded-full animate-spin"></div>
+    </div>
+
+    <!-- Success Check -->
+    <div id="successCheck" class="hidden flex justify-center mb-4">
+      <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-bounce">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- Failed X -->
+    <div id="failedX" class="hidden flex justify-center mb-4">
+      <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center animate-shake">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-red-600" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </div>
+    </div>
+
+    <h2 id="modalText" class="text-lg font-semibold text-green-700">Logging you in...</h2>
+  </div>
+</div>
+
 {{> footer}}
+
+<!-- ✅ JS Logic -->
+<script>
+  const form = document.getElementById('loginForm');
+  const modal = document.getElementById('loginModal');
+  const loading = document.getElementById('loadingCircle');
+  const success = document.getElementById('successCheck');
+  const failed = document.getElementById('failedX');
+  const modalText = document.getElementById('modalText');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Show modal + loading animation
+    modal.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    success.classList.add('hidden');
+    failed.classList.add('hidden');
+    modalText.textContent = "Checking credentials...";
+
+    // Send login data using fetch (instead of direct form submit)
+    const formData = new FormData(form);
+    const body = new URLSearchParams(formData);
+
+    try {
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body
+      });
+
+      const text = await res.text();
+
+      // Check for success based on redirect or known keywords
+      if (res.redirected || text.includes("dashboard") || text.includes("home")) {
+        // ✅ Success animation
+        loading.classList.add('hidden');
+        success.classList.remove('hidden');
+        modalText.textContent = "Login successful! Redirecting...";
+        setTimeout(() => window.location.href = res.url || '/', 1800);
+      } else {
+        // ❌ Failed animation
+        loading.classList.add('hidden');
+        failed.classList.remove('hidden');
+        modalText.textContent = "Invalid email or password!";
+        setTimeout(() => {
+          modal.classList.add('hidden');
+        }, 1800);
+      }
+    } catch (err) {
+      // ❌ Handle server/network errors
+      loading.classList.add('hidden');
+      failed.classList.remove('hidden');
+      modalText.textContent = "Login failed. Try again.";
+      setTimeout(() => modal.classList.add('hidden'), 1800);
+    }
+  });
+</script>
+
+<!-- ✅ Animations -->
+<style>
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes shake {
+    10%, 90% { transform: translateX(-2px); }
+    20%, 80% { transform: translateX(4px); }
+    30%, 50%, 70% { transform: translateX(-6px); }
+    40%, 60% { transform: translateX(6px); }
+  }
+  .animate-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+</style>
